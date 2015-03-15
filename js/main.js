@@ -1,6 +1,14 @@
 var storyManager;
+var QUESTIONNAIRE_TYPE = 'cat01';
+
 
 $(document).ready(function() {
+
+    var typeParam = getParameterByName('type');
+    if(typeParam){
+        QUESTIONNAIRE_TYPE = typeParam;
+    }
+
 
     storyManager = StoryManager();
 
@@ -24,6 +32,10 @@ var preloadAllImages = function(pages) {
         if(page.image){
             arrayOfImages.push(page.image);
         }
+
+        if(page.images){
+            arrayOfImages.push(page.images[QUESTIONNAIRE_TYPE]);
+        }
     });
 
     var completed = 0;
@@ -33,6 +45,9 @@ var preloadAllImages = function(pages) {
         imagesQueue.defer(function (callback) {
             $('<img />').attr('src',"res/"+ imageSrc)
                 .appendTo('body').css('display','none')
+                .error(function(e){
+                    console.warn('error loading ' + e.target.currentSrc);
+                })
                 .load(function () {
                     console.log("loaded: " + imageSrc);
                     completed += 1;

@@ -7,7 +7,9 @@ function StoryManager() {
     var answers = [];
 
     var currentPage,
-        currentPageNumber = 0;
+        currentPageNumber = 0,
+        currentTaskNumber = 0;
+
 
     var questionTime;
 
@@ -15,60 +17,16 @@ function StoryManager() {
 
 
 
-    self.pages = [
-
-        {   type : 'task',
-            mode : 'multi',
-            image  : 'tasks/compare01-A.png',
-            hideImage : true,
-            title : "How many nodes are connected with node <b>(A)</b>",
-            options : ["A","B","C","D","E","F","G","H","I","L"]
-        },
-
-        {type : 'full', image:'intro/welcome.png'},
-        {type : 'full', image:'intro/graph01.png'},
-        {type : 'full', image:'intro/bubbleset.png'},
-        {type : 'full', image:'intro/linesets.png'},
-        {type : 'full', image:'intro/branchingsets.png'},
-
-        {   type : 'task',
-            mode : 'multi',
-            image  : 'intro01.png',
-            hideImage : true,
-            title : "How many nodes are connected with node <b>(A)</b>",
-            options : ["A","B","C","D","E","F","G","H","I","L"]
-        },
-        {   type : 'task',
-            mode : 'single',
-            id  : 'question1',
-            image  : 'intro01.png',
-            title : "question 2: what",
-            options : ["Asd","asdasd","dsad"]
-        },
-        {   type : 'task',
-            mode : 'single',
-            id  : 'question3',
-            image  : 'intro01.png',
-            title : "question 2: what",
-            options : ["Asd","asdasd","dsad"]
-        },
-
-        {   type : 'task',
-            mode : 'single',
-            id  : 'question4',
-            image  : 'intro01.png',
-            title : "question 3: another question",
-            options : ["1sdas2","www","qwe"]
-        },
-        {type : 'full', image:'thanks.png'}
-
-    ];
+    self.pages = QUESTIONNAIRE_PAGES;
 
 
     self.nextPage = function () {
 
+        currentPage = self.pages[currentPageNumber];
+
+
         //submit at the last slide
-        if(currentPageNumber == self.pages.length - 1){
+        if(currentPage.action === 'submit'){
             submitResults();
             console.log("results submitted");
         } else if(currentPageNumber == self.pages.length){
@@ -76,7 +34,6 @@ function StoryManager() {
             return;
         }
 
-        currentPage = self.pages[currentPageNumber];
 
         if(currentPage.type === 'full'){
             displayFullPage(currentPage.image);
@@ -99,23 +56,15 @@ function StoryManager() {
     };
 
     var displayTaskPage = function (page, params) {
+        currentTaskNumber++;
         frontPage.hide();
         backPage.show();
 
 
 
-        titlePage.html('').append('<p class="question-text">'+ page.title +'<p>');
+        titlePage.html('').append('<p class="question-text">'+ currentTaskNumber + " - " + page.title +'<p>');
         $(".question-text").hide().fadeIn();
 
-        //var list = d3.selectAll(sidePage.toArray()).html('')
-        //    .append('ul')
-        //    .classed('options-list', true);
-        //
-        //list.selectAll('li').data(page.options).enter()
-        //    .append('li')
-        //    .text(function (d) {
-        //        return d;
-        //    })
         var list = d3.selectAll(sidePage.toArray()).html('')
             .append('div')
             .classed('options-list', true);
@@ -126,12 +75,16 @@ function StoryManager() {
                     return d;
                 })
             .classed('option', true)
+            .style('width', function (d) {
+                if(page.options.length < 8 || d.length > 5)return '100px';
+                else return '35px';
+            })
             .on('click', function (d,i) {
                 if(!params.deactivateButtons){
                     if(page.mode == 'single'){
                         d3.select(this).classed('selected', true);
                         setTimeout(function () {
-                            setAnswer(i);
+                            setAnswer(d);
                             self.nextPage();
                         }, 200)
                     } else if (page.mode == 'multi'){
@@ -147,10 +100,9 @@ function StoryManager() {
                 .text('SUBMIT')
                 .on('click', function () {
                     if(!params.deactivateButtons){
-
                         var answer = [];
-                        d3.selectAll('li.selected').each(function (d,i) {
-                            answer.push(i);
+                        d3.selectAll('.selected').each(function (d,i) {
+                            answer.push(d);
                         });
                         setAnswer(answer);
                         self.nextPage();
@@ -162,21 +114,23 @@ function StoryManager() {
         var image = d3.selectAll(vizPage.toArray()).html('').append('div')
             .classed('viz-image', true);
 
+        var imageSrc = page.images[QUESTIONNAIRE_TYPE];
+
         if(params.deactivateButtons) {
             //dummy task
-            image.style("background-image", "url(res/"+ page.image + ")")
+            image.style("background-image", "url(res/"+ imageSrc + ")")
                 .on('click', function () {
                     self.nextPage();
                 });
         } else {
             image.style("background-image", function () {
-                if(params.hideImage){
+                if(params.hideImage = false){//XXX
                     return "url(res/clicktoview.png)";
                 }else{
-                    return "url(res/"+ page.image + ")";
+                    return "url(res/"+ imageSrc + ")";
                 }
             } ).on('click', function () {
-                image.style("background-image", "url(res/"+ page.image + ")");
+                image.style("background-image", "url(res/"+ imageSrc + ")");
             });
         }
 
@@ -189,11 +143,29 @@ function StoryManager() {
 
     var setAnswer = function (i) {
         var time = new Date().getTime() - questionTime;
-        answers.push({id: currentPage.id, answer: i, time: time});
+
+        var correct;
+
+        if(_.isEqual(_.sortBy(i), _.sortBy(currentPage.answer))){
+            console.log('RIGHT');
+            correct = true;
+        } else {
+            console.log('WRONG');
+            correct = false;
+        }
+
+        //if(currentPage.mode === 'single'){
+        //}else if(currentPage.mode === 'multi'){
+        //    debugger
+        //}
+
+        answers.push({id: currentPage.id, answer: i, time: time, correct: correct});
     };
 
     var submitResults = function () {
         var data = {user: userId, answers : answers};
+
+        console.log(data);
 
         $.ajax
         ({

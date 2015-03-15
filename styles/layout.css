@@ -101,8 +101,10 @@ body {
     padding-left: 25px;
     padding-right: 25px;
 
-    position: fixed;
-    bottom: 120px;
+    /*position: fixed;*/
+    /*bottom: 120px;*/
+
+    float: left;
 
     background-color: #444444;
     color: white;
